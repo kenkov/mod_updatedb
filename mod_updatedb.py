@@ -4,9 +4,9 @@
 
 from mod import Mod
 from logging import getLogger
-from textfilter import TwitterPreprocess
+from preprocessing import TwitterPreprocessing
+from textfilter import JapaneseFilter
 import pymongo as pm
-import traceback
 from depgen_updatedb import DepgenUpdateDB
 
 
@@ -21,10 +21,11 @@ class ModUpdateDB(Mod):
     ):
         self.logger = logger if logger else getLogger(__file__)
 
-        self.preprocess = TwitterPreprocess()
+        self.preprocess = TwitterPreprocessing()
+        self.fltr = JapaneseFilter()
         client = pm.MongoClient(host, port)
         self.colld = client[db][coll]
-        self.kov_colld = client["kovroid"]["tweet"]
+        self.kov_colld = client["kovroid"]["tweet20150218"]
 
         self.dg = DepgenUpdateDB(
             host=host,
@@ -33,18 +34,15 @@ class ModUpdateDB(Mod):
             coll=coll,
         )
 
-    def is_fire(self, message, master):
+    def is_utterance_needed(self, message, master):
         self.kov_colld.insert(message)
 
         text = message["text"]
-        convtw = self.preprocess.sub(text)
-        try:
-            if self.preprocess.filter(convtw):
-                self.dg.update(text)
-        except:
-            traceback.print_exc()
+        convtw = self.preprocess.convert(text)
+        if self.fltr.is_passed(convtw):
+            self.dg.update(convtw)
 
         return False
 
-    def reses(self, message, master):
+    def utter(self, message, master):
         return []
