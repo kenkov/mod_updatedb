@@ -34,7 +34,7 @@ class ModUpdateDB(Mod):
             coll=coll,
         )
 
-    def is_utterance_needed(self, message, master):
+    def can_utter(self, message, master):
         self.kov_colld.insert(message)
 
         text = message["text"]
